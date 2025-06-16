@@ -5,9 +5,13 @@ import time
 from scipy.optimize import curve_fit
 start_time = time.time()
 ambient_temp = 273.15 + 20
-cycle_number = 10
+cycle_number = 250
+print("start")
+"""
+Finds fitting curve for degradation using pybamm
+Code is based on https://docs.pybamm.org/en/latest/source/examples/notebooks/models/coupled-degradation.html
 
-
+"""
 
 model = pybamm.lithium_ion.DFN(
     {
@@ -40,16 +44,28 @@ param["Initial temperature [K]"] = ambient_temp
 
 
 exp = pybamm.Experiment(
-    [
-        
-        "Charge at 0.3C until 4.1 V",
-    ]
-    + [
+[
         (
+            #Case 4
+            "Discharge at 1.38A for 10 minutes",
+            "Discharge at 3.45A for 20 minutes",
+            "Discharge at 1.38A for 10 minutes",
+            "Charge at 2.5A until 4.1 V",
             
-            "Discharge at 0.2 C for 20 minutes",
-
-            "Charge at 0.4C until 4.1 V",
+            #Case 3
+            #"Discharge at 2A for 20 minutes",
+            #"Charge at 4A until 4.1 V", 
+            
+            
+            #Case 2
+            #"Discharge at 1.05A for 20 minutes",
+            #"Discharge at 4.5A for 20 minutes",
+            #"Discharge at 1.05A for 20 minutes",
+            #"Charge at 1A until 4.1 V",
+            
+            #Case 1
+            #"Discharge at 2.05A for 20 minutes",
+            #"Charge at 4.1A until 4.1 V", 
             
             "Hold at 4.1 V until C/100",
         )
@@ -81,43 +97,28 @@ print(sol["Loss of lithium inventory [%]"].entries[-1])
 
 DC = sol["Discharge capacity [A.h]"].entries
 print("Discharge capacity [A.h]", DC[-1])
-
+"""
 plt.figure()
 plt.plot(Qt, Q_SEI, label="SEI", linestyle="dashed")
 plt.plot(Qt, Q_SEI_cr, label="SEI on cracks", linestyle="dashdot")
 plt.plot(Qt, Q_plating, label="Li plating", linestyle="dotted")
-plt.plot(Qt, Q_side, label="All side reactions", linestyle=(0, (6, 1)))
-plt.plot(Qt, Q_LLI, label="All LLI")
-plt.xlabel("Throughput capacity [A.h]")
-plt.ylabel("Capacity loss [A.h]")
-plt.legend()
-#plt.show()
-
-plt.figure()
-plt.plot(Qt, DC, label="Discharge cap")
-
-
+#plt.plot(Qt, Q_side, label="All side reactions", linestyle=(0, (6, 1)))
+plt.plot(Qt, Q_LLI, label="All LLI",)
+plt.xlabel("Throughput capacity [A.h]", fontsize = 16)
+plt.ylabel("Capacity loss [A.h]", fontsize = 16)
+plt.title("Physics-based model degradation DFN", fontsize = 18)
+"""
 Qt = sol["Throughput capacity [A.h]"].entries
 LLI = sol["Loss of lithium inventory [%]"].entries
-LAM_neg = sol["Loss of active material in negative electrode [%]"].entries
-LAM_pos = sol["Loss of active material in positive electrode [%]"].entries
-plt.figure()
-plt.plot(Qt, LLI, label="LLI")
-#plt.plot(Qt, LAM_neg, label="LAM (negative)")
-#plt.plot(Qt, LAM_pos, label="LAM (positive)")
-plt.xlabel("Throughput capacity [A.h]")
-plt.ylabel("Degradation [%]")
-plt.legend()
-plt.show()
 
 
 
 # Define the model that starts at y=0 when x=0
-z = 0.46
+z = 0.47
 def exp_zero_start(x, a, b):
-    return a * (np.exp(-b) - 1)*x**(z + (3/(50)))
+    return a * (np.exp(-b) - 1)*x**(z)
 
-print(len(Qt))
+#print(len(Qt))
 # Step 3: Fit the model to data
 params, _ = curve_fit(exp_zero_start, Qt[:12000], LLI[:12000], p0=(0.1, 1), maxfev=len(Qt))
 
@@ -128,11 +129,11 @@ print(f"Fitted equation: y = {a:.3f} * (e^({-b:.3f}) - 1) * x^{z:.3f}")
 x_fit = np.linspace(0, Qt[-1], 500)
 y_fit = exp_zero_start(x_fit, *params)
 
-plt.scatter(Qt, LLI, label='Data', color='blue')
+plt.scatter(Qt, LLI, label='Physic-based model', color='blue')
 plt.plot(x_fit, y_fit, label='Fitted Curve', color='red')
-plt.title("Exponential Curve Fit")
-plt.xlabel("x")
-plt.ylabel("y")
+plt.title("Exponential Curve Fit", fontsize = 18)
+plt.xlabel("Ah-throughput", fontsize = 16)
+plt.ylabel("Degradation %", fontsize = 16)
 plt.legend()
 plt.grid(True)
 plt.show()
