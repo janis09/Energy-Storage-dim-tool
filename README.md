@@ -1,1 +1,1 @@
-# Energy-Storage-dimensioning-tool-for-Lithium-Ion-batteries
+# Energy-Storage-dim tool
